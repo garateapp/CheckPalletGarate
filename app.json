@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "CheckPalletGarate",
+    "slug": "check-pallet-garate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0F2A43"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.garate.checkpalletgarate",
+      "infoPlist": {
+        "NSCameraUsageDescription": "CheckPalletGarate necesita la cámara para leer el código de barra del folio del pallet."
+      }
+    },
+    "android": {
+      "package": "com.garate.checkpalletgarate",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F2A43"
+      },
+      "permissions": ["CAMERA"],
+      "edgeToEdgeEnabled": false
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permite a CheckPalletGarate usar la cámara para escanear códigos de barra de pallets."
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "http://10.0.2.2:8000/api/v1"
+    }
+  }
+}
