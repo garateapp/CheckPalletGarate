@@ -169,7 +169,7 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
       {mode === 'camera' ? (
         <View style={styles.cameraWrap}>
           <CameraView
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: SCANNABLE_CODES }}
             onBarcodeScanned={isLoading ? undefined : handleBarcode}
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   scanOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(15, 42, 67, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
