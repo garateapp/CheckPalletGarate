@@ -213,8 +213,29 @@ export async function fetchPallet(folio: string): Promise<PalletResponse> {
 export async function sendInspection(
   payload: InspectionPayload
 ): Promise<InspectionResponse> {
-  const { data } = await api.post<InspectionResponse>('/inspections', payload);
-  return data;
+  try {
+    const { data } = await api.post<InspectionResponse>('/inspections', payload);
+    return data;
+  } catch (error) {
+    // 422 de StorePalletInspectionRequest: convertir los errores de validación
+    // en un mensaje legible para el operario.
+    if (axios.isAxiosError(error) && error.response?.status === 422) {
+      const body = error.response.data as
+        | { message?: string; errors?: Record<string, string[]> }
+        | undefined;
+      const details = body?.errors
+        ? Object.entries(body.errors)
+            .map(([field, msgs]) => `• ${field}: ${msgs.join(', ')}`)
+            .join('\n')
+        : '';
+      throw new Error(
+        ['Datos incompletos para guardar la inspección.', details]
+          .filter(Boolean)
+          .join('\n')
+      );
+    }
+    throw error;
+  }
 }
 
 export async function logoutRequest(): Promise<void> {
