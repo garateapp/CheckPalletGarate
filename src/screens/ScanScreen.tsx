@@ -21,6 +21,7 @@ import type { BarcodeScanningResult, BarcodeType } from 'expo-camera';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { fetchPallet } from '../services/api';
 import type { PalletResponse } from '../types';
+import { extractPaletizajeChecks } from '../utils/paletizaje';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, TOUCH_TARGET_HEIGHT } from '../theme';
 
@@ -66,11 +67,11 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
 
       try {
         const pallet: PalletResponse = await fetchPallet(folio);
-
-        if (!pallet.technical_sheet?.pallet_items?.length) {
+        console.log('Pallet cargado:', pallet);
+        if (extractPaletizajeChecks(pallet).length === 0) {
           Alert.alert(
-            'Ficha sin ítems',
-            `El folio ${folio} tiene una ficha técnica sin materiales configurados.`
+            'Ficha sin paletizaje',
+            `El folio ${folio} no tiene datos de paletizaje para verificar.`
           );
           return;
         }

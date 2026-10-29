@@ -42,11 +42,30 @@ export interface PalletItem {
   replacement_material: Material | null;
 }
 
+export interface Paletizaje {
+  base_pallet: string | null;
+  filas_cajas: string | null;
+  tiempo_viaje: string | null;
+  altura_pallet: string | null;
+  instrucciones: string | null;
+  metros_zuncho: string | null;
+  protocolo_sag: string | null;
+  sellos_zuncho: string | null;
+  tipo_transporte: string | null;
+  cajas_por_pallet: string | null;
+  zunchos_verticales_lado_1m: string | null;
+  numero_zunchos_horizontales: string | null;
+  zunchos_verticales_lado_1_2m: string | null;
+  posiciones_zunchos_horizontales: string | null;
+}
+
 export interface TechnicalSheet {
   id: number;
   nombre: string;
-  version: string;
+  version: string | number;
   packaging: Packaging;
+  paletizaje?: Paletizaje | null;
+  items?: unknown[];
   pallet_items: PalletItem[];
 }
 
@@ -54,6 +73,7 @@ export interface TechnicalSheet {
 export interface PalletResponse {
   folio: string;
   technical_sheet: TechnicalSheet;
+  metadata?: unknown;
 }
 
 // ─── Inspección ───────────────────────────────────────────────────
@@ -68,11 +88,19 @@ export interface InspectionItemPayload {
 }
 
 /** Body de POST /api/v1/inspections */
+export interface PaletizajeCheckPayload {
+  campo: string;
+  valor_esperado: string;
+  cumple: boolean;
+  motivo_no_cumple: string | null;
+}
+
 export interface InspectionPayload {
   folio: string;
   technical_sheet_id: number;
   observaciones_generales: string;
   items: InspectionItemPayload[];
+  paletizaje_checks: PaletizajeCheckPayload[];
 }
 
 export type InspectionResultado = 'aprobado' | 'rechazado';
@@ -88,11 +116,17 @@ export interface InspectionResponse {
 
 export type ChecklistDecision = 'cumple' | 'no_cumple' | null;
 
+/** Verificación concreta derivada del nodo `paletizaje`. */
+export interface PaletizajeCheck {
+  key: string;
+  label: string;
+  value: string;
+  unit: string | null;
+}
+
 /** Estado de un ítem en el checklist mientras el operario lo completa */
 export interface ChecklistItemState {
-  palletItem: PalletItem;
-  /** true si el operario seleccionó el material de reemplazo */
-  usingReplacement: boolean;
+  check: PaletizajeCheck;
   decision: ChecklistDecision;
   motivoNoCumple: string;
 }

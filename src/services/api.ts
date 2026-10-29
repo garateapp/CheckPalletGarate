@@ -33,7 +33,7 @@ const extra = (Constants.expoConfig?.extra ?? {}) as { apiUrl?: string };
 const envUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export const API_BASE_URL: string =
-  extra.apiUrl ?? envUrl ?? 'http://10.0.2.2:8000/api/v1';
+  extra.apiUrl ?? envUrl ?? 'https://appgreenex.cl/api/v1';
 
 // ─── Callback de expiración (desacople con el contexto de auth) ───
 
@@ -112,14 +112,24 @@ api.interceptors.response.use(
 // ─── Endpoints tipados ────────────────────────────────────────────
 
 export async function login(request: LoginRequest): Promise<LoginResponse> {
+  console.log('login request', request);
   const { data } = await api.post<LoginResponse>('/auth/login', request);
   return data;
 }
 
 export async function fetchPallet(folio: string): Promise<PalletResponse> {
-  const { data } = await api.get<PalletResponse>(
-    `/pallets/${encodeURIComponent(folio.trim())}`
-  );
+  const { data } = await api.get<
+    PalletResponse | { data: PalletResponse; metadata?: unknown }
+  >(`/pallets/${encodeURIComponent(folio.trim())}`);
+
+  if ('data' in data) {
+    console.log('fetchPallet: data wrapped in { data, metadata }', data);
+    return {
+      ...data.data,
+      metadata: data.metadata ?? data.data.metadata,
+    };
+  }
+  console.log('fetchPallet: data is PalletResponse', data);
   return data;
 }
 

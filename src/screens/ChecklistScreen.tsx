@@ -2,7 +2,7 @@
  * CheckPalletGarate - Pantalla de checklist de conformación
  *
  * - Cabecera con Folio, Nombre de la Ficha, Versión y Packaging.
- * - FlatList de ítems con toggle Material Principal / Reemplazo.
+ * - Checklist generado exclusivamente desde el nodo `paletizaje` de la ficha.
  * - Validación binaria estricta: [ ✓ Cumple ] / [ ✕ No Cumple ].
  * - "No Cumple" despliega TextInput obligatorio de motivo.
  * - Observaciones generales opcionales.
@@ -24,9 +24,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { sendInspection } from '../services/api';
 import type {
   ChecklistItemState,
-  InspectionItemPayload,
   InspectionPayload,
+  PaletizajeCheckPayload,
 } from '../types';
+import { extractPaletizajeChecks } from '../utils/paletizaje';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, TOUCH_TARGET_HEIGHT } from '../theme';
 
@@ -38,9 +39,8 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
 
   // ─── Estado del checklist ───────────────────────────────────────
   const [items, setItems] = useState<ChecklistItemState[]>(() =>
-    sheet.pallet_items.map((palletItem) => ({
-      palletItem,
-      usingReplacement: false,
+    extractPaletizajeChecks(pallet).map((check) => ({
+      check,
       decision: null,
       motivoNoCumple: '',
     }))
@@ -67,6 +67,7 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
 
   const isValid = useMemo(
     () =>
+      items.length > 0 &&
       items.every(
         (item) =>
           item.decision !== null &&
@@ -85,12 +86,12 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
       folio: pallet.folio,
       technical_sheet_id: sheet.id,
       observaciones_generales: observaciones.trim(),
-      items: items.map<InspectionItemPayload>((item) => ({
-        technical_sheet_pallet_item_id: item.palletItem.id,
-        material_utilizado_id: item.usingReplacement
-          ? (item.palletItem.replacement_material?.id ?? item.palletItem.material.id)
-          : item.palletItem.material.id,
-        es_reemplazo: item.usingReplacement && !!item.palletItem.replacement_material,
+      items: [],
+      paletizaje_checks: items.map<PaletizajeCheckPayload>((item) => ({
+        campo: item.check.key,
+        valor_esperado: item.check.unit
+          ? `${item.check.value} ${item.check.unit}`
+          : item.check.value,
         cumple: item.decision === 'cumple',
         motivo_no_cumple:
           item.decision === 'no_cumple' ? item.motivoNoCumple.trim() : null,
@@ -176,12 +177,12 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
             <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
           </View>
           <Text style={styles.progressText}>
-            {answeredCount}/{items.length} ítems
+            {answeredCount}/{items.length} verificaciones
           </Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Verificación de materiales</Text>
+      <Text style={styles.sectionTitle}>Verificación de paletizaje</Text>
     </View>
   );
 
@@ -231,14 +232,11 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
     </View>
   );
 
-  // ─── Tarjeta de ítem ────────────────────────────────────────────
+  // ─── Tarjeta de verificación ────────────────────────────────────
   const renderItem = useCallback(
     ({ item, index }: { item: ChecklistItemState; index: number }) => {
-      const { palletItem } = item;
-      const hasReplacement = !!palletItem.replacement_material;
-      const selectedMaterial = item.usingReplacement
-        ? palletItem.replacement_material
-        : palletItem.material;
+      const { check } = item;
+      const expected = check.unit ? `${check.value} ${check.unit}` : check.value;
 
       return (
         <View
@@ -248,53 +246,15 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
             item.decision === 'no_cumple' && styles.itemCardFail,
           ]}
         >
-          {/* Título del material seleccionado */}
           <View style={styles.itemHeader}>
             <View style={styles.itemIndexBadge}>
               <Text style={styles.itemIndexText}>{index + 1}</Text>
             </View>
             <View style={styles.itemTitleWrap}>
-              <Text style={styles.itemMaterialName}>{selectedMaterial?.nombre}</Text>
-              <Text style={styles.itemSpecs}>
-                Cantidad estándar: {palletItem.cantidad_estandar.toFixed(2)} u
-                {palletItem.calibre ? `  ·  Calibre: ${palletItem.calibre}` : ''}
-              </Text>
+              <Text style={styles.itemMaterialName}>{check.label}</Text>
+              <Text style={styles.itemSpecs}>Verificar: {expected}</Text>
             </View>
           </View>
-
-          {/* Toggle Principal / Reemplazo */}
-          {hasReplacement ? (
-            <View style={styles.chipRow}>
-              <Pressable
-                style={[styles.chip, !item.usingReplacement && styles.chipActive]}
-                onPress={() => updateItem(index, { usingReplacement: false })}
-                disabled={isSubmitting}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    !item.usingReplacement && styles.chipTextActive,
-                  ]}
-                >
-                  PRINCIPAL
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.chip, item.usingReplacement && styles.chipReplaced]}
-                onPress={() => updateItem(index, { usingReplacement: true })}
-                disabled={isSubmitting}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    item.usingReplacement && styles.chipTextReplaced,
-                  ]}
-                >
-                  REEMPLAZO
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
 
           {/* Botones binarios grandes */}
           <View style={styles.binaryRow}>
@@ -308,7 +268,7 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
                 updateItem(index, { decision: 'cumple', motivoNoCumple: '' })
               }
               disabled={isSubmitting}
-              testID={`item-${palletItem.id}-cumple`}
+              testID={`check-${check.key}-cumple`}
             >
               <Text style={styles.binaryButtonText}>✓ CUMPLE</Text>
             </Pressable>
@@ -321,7 +281,7 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
               ]}
               onPress={() => updateItem(index, { decision: 'no_cumple' })}
               disabled={isSubmitting}
-              testID={`item-${palletItem.id}-no-cumple`}
+              testID={`check-${check.key}-no-cumple`}
             >
               <Text style={styles.binaryButtonText}>✕ NO CUMPLE</Text>
             </Pressable>
@@ -337,12 +297,12 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
                 style={styles.motivoInput}
                 value={item.motivoNoCumple}
                 onChangeText={(t) => updateItem(index, { motivoNoCumple: t })}
-                placeholder="Describe el problema (ej.: zuncho flojo)"
+                placeholder="Describe el problema (ej.: faltan cajas en la base)"
                 placeholderTextColor={colors.placeholder}
                 multiline
                 maxLength={300}
                 editable={!isSubmitting}
-                testID={`item-${palletItem.id}-motivo`}
+                testID={`check-${check.key}-motivo`}
               />
             </View>
           ) : null}
@@ -356,7 +316,7 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
     <View style={styles.container}>
       <FlatList
         data={items}
-        keyExtractor={(item) => String(item.palletItem.id)}
+        keyExtractor={(item) => item.check.key}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
         ListFooterComponent={listFooter}
