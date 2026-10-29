@@ -118,6 +118,25 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
 }
 
 /**
+ * El backend serializa `sheet.metadata` como string JSON (o lo omite cuando
+ * la ficha no tiene packaging_spec). Lo convertimos a objeto para que el
+ * checklist pueda leer `metadata.packaging_spec.paletizaje`.
+ */
+function parseSheetMetadata(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') return value as Record<string, unknown>;
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
+    } catch {
+      console.warn('[normalizePalletResponse] metadata no es JSON válido:', value.slice(0, 120));
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
  * Normaliza la respuesta de GET /pallets/{folio}.
  * El backend puede devolver la ficha dentro de `sheet` o `technical_sheet`,
  * y/o envolver todo en `{ data: ... }`. Se garantiza siempre `technical_sheet`.
@@ -128,24 +147,55 @@ export function normalizePalletResponse(raw: unknown): PalletResponse | null {
   let source = raw as Record<string, unknown>;
 
   // Si viene envuelto en { data: {...} }, desenvolver.
-  if ('data' in source && source.data && typeof source.data === 'object' && !('sheet' in source.data) && !('technical_sheet' in source.data)) {
-    source = { ...source, ...(source.data as Record<string, unknown>) };
-  } else if ('data' in source && source.data && typeof source.data === 'object') {
+  if ('data' in source && source.data && typeof source.data === 'object') {
     source = { ...source, ...(source.data as Record<string, unknown>) };
   }
 
-  const sheet = (source.sheet ?? source.technical_sheet) as PalletResponse['technical_sheet'] | undefined;
+  const sheet = (source.sheet ?? source.technical_sheet) as
+    | (PalletResponse['technical_sheet'] & { metadata?: unknown })
+    | undefined;
   const folio = source.folio != null ? String(source.folio) : '';
 
   if (!sheet || typeof sheet !== 'object') return null;
 
-  return {
+  // El backend serializa la metadata de la ficha como string JSON (o la omite).
+  // La convertimos a objeto para poder leer `metadata.packaging_spec.paletizaje`.
+  const sheetMeta = parseSheetMetadata(sheet.metadata);
+  // Metadata a nivel raíz o nivel ficha (algunos backends la ponen fuera del sheet).
+  const rootMeta = parseSheetMetadata(source.metadata) ?? parseSheetMetadata(source.sheet_metadata);
+
+  const normalized: PalletResponse = {
     ...source,
     folio,
     technical_sheet: sheet,
     sheet,
-    metadata: source.metadata,
-  } as PalletResponse;
+  };
+
+  if (sheetMeta) {
+    sheet.metadata = sheetMeta;
+  } else if (!sheet.metadata && rootMeta) {
+    // Fallback: la ficha no trae metadata pero el nivel raíz sí → copiarla.
+    sheet.metadata = rootMeta;
+  }
+
+  if (!sheet.metadata) {
+    console.warn(
+      '[normalizePalletResponse] La ficha NO incluye metadata/packaging_spec. Claves sheet:',
+      Object.keys(sheet).join(','),
+      '| Claves raíz:',
+      Object.keys(source).join(',')
+    );
+  } else {
+    const spec = (sheet.metadata as Record<string, unknown>)?.packaging_spec as
+      | Record<string, unknown>
+      | undefined;
+    console.log(
+      '[normalizePalletResponse] metadata OK. Secciones packaging_spec:',
+      spec ? Object.keys(spec).join(',') : '(sin packaging_spec)'
+    );
+  }
+
+  return normalized;
 }
 
 export async function fetchPallet(folio: string): Promise<PalletResponse> {
