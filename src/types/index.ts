@@ -64,15 +64,29 @@ export interface TechnicalSheet {
   nombre: string;
   version: string | number;
   packaging: Packaging;
+  /** Metadatos de la ficha: contiene `packaging_spec` con calidades,
+   *  formato, paletizaje, tolerancias, responsables e identificación. */
+  metadata?: {
+    packaging_spec?: {
+      paletizaje?: Paletizaje | null;
+      [seccion: string]: unknown;
+    } | null;
+    [clave: string]: unknown;
+  } | null;
   paletizaje?: Paletizaje | null;
   items?: unknown[];
+  unit_items?: unknown[];
   pallet_items: PalletItem[];
 }
 
-/** Respuesta de GET /api/v1/pallets/{folio} */
+/** Respuesta de GET /api/v1/pallets/{folio}
+ *  El backend puede devolver la ficha en `sheet` o en `technical_sheet`. */
 export interface PalletResponse {
   folio: string;
-  technical_sheet: TechnicalSheet;
+  c_embalaje?: string;
+  technical_sheet_id?: number;
+  sheet?: TechnicalSheet;
+  technical_sheet?: TechnicalSheet;
   metadata?: unknown;
 }
 

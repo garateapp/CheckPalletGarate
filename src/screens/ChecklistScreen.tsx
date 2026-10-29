@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { sendInspection } from '../services/api';
+import { getSheetFromPallet } from '../utils/paletizaje';
 import type {
   ChecklistItemState,
   InspectionPayload,
@@ -35,7 +36,7 @@ type Props = NativeStackScreenProps<AppStackParamList, 'Checklist'>;
 
 export default function ChecklistScreen({ route, navigation }: Props): React.JSX.Element {
   const { pallet } = route.params;
-  const sheet = pallet.technical_sheet;
+  const sheet = getSheetFromPallet(pallet);
 
   // ─── Estado del checklist ───────────────────────────────────────
   const [items, setItems] = useState<ChecklistItemState[]>(() =>

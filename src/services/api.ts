@@ -117,20 +117,47 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
   return data;
 }
 
-export async function fetchPallet(folio: string): Promise<PalletResponse> {
-  const { data } = await api.get<
-    PalletResponse | { data: PalletResponse; metadata?: unknown }
-  >(`/pallets/${encodeURIComponent(folio.trim())}`);
+/**
+ * Normaliza la respuesta de GET /pallets/{folio}.
+ * El backend puede devolver la ficha dentro de `sheet` o `technical_sheet`,
+ * y/o envolver todo en `{ data: ... }`. Se garantiza siempre `technical_sheet`.
+ */
+export function normalizePalletResponse(raw: unknown): PalletResponse | null {
+  if (!raw || typeof raw !== 'object') return null;
 
-  if ('data' in data) {
-    console.log('fetchPallet: data wrapped in { data, metadata }', data);
-    return {
-      ...data.data,
-      metadata: data.metadata ?? data.data.metadata,
-    };
+  let source = raw as Record<string, unknown>;
+
+  // Si viene envuelto en { data: {...} }, desenvolver.
+  if ('data' in source && source.data && typeof source.data === 'object' && !('sheet' in source.data) && !('technical_sheet' in source.data)) {
+    source = { ...source, ...(source.data as Record<string, unknown>) };
+  } else if ('data' in source && source.data && typeof source.data === 'object') {
+    source = { ...source, ...(source.data as Record<string, unknown>) };
   }
-  console.log('fetchPallet: data is PalletResponse', data);
-  return data;
+
+  const sheet = (source.sheet ?? source.technical_sheet) as PalletResponse['technical_sheet'] | undefined;
+  const folio = source.folio != null ? String(source.folio) : '';
+
+  if (!sheet || typeof sheet !== 'object') return null;
+
+  return {
+    ...source,
+    folio,
+    technical_sheet: sheet,
+    sheet,
+    metadata: source.metadata,
+  } as PalletResponse;
+}
+
+export async function fetchPallet(folio: string): Promise<PalletResponse> {
+  const { data } = await api.get<unknown>(
+    `/pallets/${encodeURIComponent(folio.trim())}`
+  );
+
+  const normalized = normalizePalletResponse(data);
+  if (!normalized || !normalized.technical_sheet) {
+    throw new Error('Respuesta inesperada del servidor: sin ficha técnica.');
+  }
+  return normalized;
 }
 
 export async function sendInspection(

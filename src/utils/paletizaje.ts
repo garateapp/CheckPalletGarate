@@ -1,9 +1,10 @@
 /**
  * Extracción y normalización del nodo `paletizaje` de la ficha técnica.
- * El bloque puede venir anidado en distintas secciones, por lo que se busca
- * recursivamente la primera clave `paletizaje`.
+ * El bloque puede venir anidado en distintas secciones (p. ej.
+ * `sheet.metadata.packaging_spec.paletizaje`), por lo que se busca
+ * recursivamente la primera clave `paletizaje` con datos útiles.
  */
-import type { Paletizaje, PaletizajeCheck } from '../types';
+import type { Paletizaje, PaletizajeCheck, PalletResponse, TechnicalSheet } from '../types';
 
 interface FieldDefinition {
   key: keyof Paletizaje;
@@ -105,6 +106,18 @@ export function buildPaletizajeChecks(paletizaje: Paletizaje): PaletizajeCheck[]
 
 export function extractPaletizajeChecks(source: unknown): PaletizajeCheck[] {
   const paletizaje = findPaletizaje(source);
-  
+
   return paletizaje ? buildPaletizajeChecks(paletizaje) : [];
+}
+
+/**
+ * Obtiene la ficha técnica del pallet sin importar si el backend la envió
+ * como `sheet` o como `technical_sheet`.
+ */
+export function getSheetFromPallet(pallet: PalletResponse): TechnicalSheet {
+  const sheet = pallet.sheet ?? pallet.technical_sheet;
+  if (!sheet) {
+    throw new Error('La respuesta del servidor no incluye ficha técnica.');
+  }
+  return sheet;
 }
