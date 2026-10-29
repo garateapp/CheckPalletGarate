@@ -7,7 +7,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:development": "eas build --platform android --profile development",
+    "build:preview": "eas build --platform android --profile preview",
+    "build:production": "eas build --platform all --profile production"
   },
   "dependencies": {
     "@react-navigation/native": "^7.1.6",
@@ -28,6 +31,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.3.0",
+    "eas-cli": "^27.1.0",
     "typescript": "~6.0.3"
   },
   "private": true

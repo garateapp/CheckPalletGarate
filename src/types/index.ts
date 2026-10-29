@@ -26,20 +26,32 @@ export interface LoginResponse {
 
 export interface Material {
   id: number;
+  codigo?: string;
   nombre: string;
 }
 
 export interface Packaging {
   id: number;
+  codigo?: string;
   nombre: string;
 }
 
 export interface PalletItem {
   id: number;
-  cantidad_estandar: number;
+  technical_sheet_id?: number;
+  material_id: number;
+  cantidad_estandar: number | string;
+  replacement_material_id?: number | null;
   calibre: string | null;
   material: Material;
   replacement_material: Material | null;
+}
+
+/** Ítems de `pallet_items` aptos para el POST /inspections. */
+export function getValidPalletItems(sheet: TechnicalSheet): PalletItem[] {
+  return (sheet.pallet_items ?? []).filter(
+    (item) => Number.isFinite(item.id) && Number.isFinite(item.material_id)
+  );
 }
 
 export interface Paletizaje {
@@ -92,29 +104,44 @@ export interface PalletResponse {
 
 // ─── Inspección ───────────────────────────────────────────────────
 
-/** Ítem individual del payload de inspección */
-export interface InspectionItemPayload {
+/**
+ * Ítem del array `items` exigido por StorePalletInspectionRequest.
+ * El servidor valida cada elemento con:
+ *   technical_sheet_pallet_item_id (required, existe en technical_sheet_pallet_items)
+ *   material_utilizado_id          (required, existe en materiales)
+ *   es_reemplazo                   (boolean)
+ *   cumple                         (boolean)
+ *   motivo_no_cumple               (nullable)
+ */
+export interface PalletItemCheckPayload {
   technical_sheet_pallet_item_id: number;
   material_utilizado_id: number;
   es_reemplazo: boolean;
   cumple: boolean;
   motivo_no_cumple: string | null;
+  /** Informativo (el servidor lo ignora si usa validated()). */
+  descripcion?: string;
 }
 
-/** Body de POST /api/v1/inspections */
+/** Body de POST /api/v1/inspections — alineado 1:1 con $request->validated() */
+export interface InspectionPayload {
+  folio: string;
+  c_embalaje: string;
+  technical_sheet_id: number;
+  /** required → nunca vacío: '' se convierte a null en buildInspectionPayload. */
+  observaciones_generales: string | null;
+  /** required, min:1 → los ítems provienen de sheet.pallet_items. */
+  items: PalletItemCheckPayload[];
+  /** Extra opcional: verificación del nodo paletizaje (el servidor la ignora). */
+  paletizaje_checks: PaletizajeCheckPayload[];
+}
+
+/** Verificación del nodo metadata.packaging_spec.paletizaje */
 export interface PaletizajeCheckPayload {
   campo: string;
   valor_esperado: string;
   cumple: boolean;
   motivo_no_cumple: string | null;
-}
-
-export interface InspectionPayload {
-  folio: string;
-  technical_sheet_id: number;
-  observaciones_generales: string;
-  items: InspectionItemPayload[];
-  paletizaje_checks: PaletizajeCheckPayload[];
 }
 
 export type InspectionResultado = 'aprobado' | 'rechazado';
@@ -123,7 +150,8 @@ export type InspectionResultado = 'aprobado' | 'rechazado';
 export interface InspectionResponse {
   message: string;
   resultado: InspectionResultado;
-  inspection_id: number;
+  id: number;
+  inspection_id?: number;
 }
 
 // ─── Estado local del checklist (UI) ──────────────────────────────

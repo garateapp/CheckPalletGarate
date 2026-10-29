@@ -23,11 +23,9 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { sendInspection } from '../services/api';
 import { getSheetFromPallet } from '../utils/paletizaje';
-import type {
-  ChecklistItemState,
-  InspectionPayload,
-  PaletizajeCheckPayload,
-} from '../types';
+import { buildInspectionPayload, InspectionPayloadError } from '../utils/inspectionPayload';
+import { getValidPalletItems } from '../types';
+import type { ChecklistItemState } from '../types';
 import { extractPaletizajeChecks } from '../utils/paletizaje';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, TOUCH_TARGET_HEIGHT } from '../theme';
@@ -83,31 +81,48 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
   const handleSubmit = useCallback(async () => {
     if (!isValid || submitLock) return;
 
-    const payload: InspectionPayload = {
-      folio: pallet.folio,
-      technical_sheet_id: sheet.id,
-      observaciones_generales: observaciones.trim(),
-      items: [],
-      paletizaje_checks: items.map<PaletizajeCheckPayload>((item) => ({
-        campo: item.check.key,
-        valor_esperado: item.check.unit
-          ? `${item.check.value} ${item.check.unit}`
-          : item.check.value,
-        cumple: item.decision === 'cumple',
-        motivo_no_cumple:
-          item.decision === 'no_cumple' ? item.motivoNoCumple.trim() : null,
-      })),
-    };
+    // Validación local equivalente a StorePalletInspectionRequest, para no
+    // recibir un 422 del servidor por datos incompletos.
+    if (getValidPalletItems(sheet).length === 0) {
+      Alert.alert(
+        'No se puede guardar',
+        'La ficha técnica no incluye materiales de pallet (pallet_items), ' +
+          'y el servidor exige al menos un ítem.'
+      );
+      return;
+    }
+
+    let payload;
+    try {
+      payload = buildInspectionPayload({
+        pallet,
+        sheet,
+        paletizajeStates: items,
+        observacionesGenerales: observaciones,
+      });
+    } catch (error) {
+      Alert.alert(
+        'No se puede guardar',
+        error instanceof InspectionPayloadError || error instanceof Error
+          ? error.message
+          : 'No se pudo armar el envío de la inspección.'
+      );
+      return;
+    }
+
+    console.log('[sendInspection] POST /inspections payload', JSON.stringify(payload, null, 2));
 
     setSubmitLock(true);
     setIsSubmitting(true);
     try {
       const response = await sendInspection(payload);
       const aprobado = response.resultado === 'aprobado';
+      const inspectionId = response.id ?? response.inspection_id;
 
       Alert.alert(
         `INSPECCIÓN ${aprobado ? 'APROBADA' : 'RECHAZADA'}`,
-        `Folio ${pallet.folio}\nResultado: ${response.resultado.toUpperCase()} · ID ${response.inspection_id}`,
+        `Folio ${payload.folio}\nResultado: ${response.resultado.toUpperCase()}` +
+          `${inspectionId != null ? ` · ID ${inspectionId}` : ''}`,
         [
           {
             text: 'ACEPTAR',
@@ -127,7 +142,7 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
       setIsSubmitting(false);
       setSubmitLock(false);
     }
-  }, [isValid, submitLock, pallet, sheet.id, observaciones, items, navigation]);
+  }, [isValid, submitLock, pallet, sheet, observaciones, items, navigation]);
 
   // Confirmación antes de salir sin guardar.
   const handleCancel = useCallback(() => {
@@ -156,6 +171,8 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
   }, [navigation, handleCancel]);
 
   // ─── Render de cabecera de lista (ficha técnica + progreso) ─────
+  const palletMaterials = getValidPalletItems(sheet);
+
   const listHeader = (
     <View>
       <View style={styles.sheetCard}>
@@ -171,6 +188,18 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
             <Text style={styles.metaChipValue}>{sheet.packaging.nombre}</Text>
           </View>
         </View>
+
+        {/* Materiales del pallet que se registrarán en la inspección */}
+        {palletMaterials.length > 0 ? (
+          <View style={styles.materialsBox}>
+            <Text style={styles.materialsTitle}>Materiales del pallet a registrar</Text>
+            {palletMaterials.map((item) => (
+              <Text key={item.id} style={styles.materialsLine}>
+                • {item.material?.nombre ?? 'Material'} — {String(item.cantidad_estandar)}
+              </Text>
+            ))}
+          </View>
+        ) : null}
 
         {/* Barra de progreso */}
         <View style={styles.progressWrap}>
@@ -392,6 +421,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     marginTop: 2,
+  },
+  materialsBox: {
+    marginTop: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    padding: spacing.sm,
+  },
+  materialsTitle: {
+    color: '#9FB2C6',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  materialsLine: {
+    color: colors.textOnDark,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 19,
   },
   progressWrap: {
     flexDirection: 'row',
