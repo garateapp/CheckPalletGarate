@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "CheckPalletGarate",
-    "slug": "check-pallet-garate",
+    "slug": "checkpalletgarate",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -21,7 +21,11 @@
       "adaptiveIcon": {
         "backgroundColor": "#0F2A43"
       },
-      "permissions": ["CAMERA"],
+      "permissions": [
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
       "edgeToEdgeEnabled": false
     },
     "plugins": [
@@ -34,7 +38,11 @@
       ]
     ],
     "extra": {
-      "apiUrl": "https://appgreenex.cl/api/v1"
-    }
+      "apiUrl": "https://produccion.garatehermanos.cl/api/v1",
+      "eas": {
+        "projectId": "1eb63e47-d8b2-441e-b5d0-dd83840c6345"
+      }
+    },
+    "owner": "calgreenex"
   }
 }
