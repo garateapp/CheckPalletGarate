@@ -33,7 +33,7 @@ const extra = (Constants.expoConfig?.extra ?? {}) as { apiUrl?: string };
 const envUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export const API_BASE_URL: string =
-  extra.apiUrl ?? envUrl ?? 'https://appgreenex.cl/api/v1';
+  extra.apiUrl ?? envUrl ?? 'https://produccion.garatehermanos.cl/api/v1';
 
 // ─── Callback de expiración (desacople con el contexto de auth) ───
 

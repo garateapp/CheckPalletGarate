@@ -24,6 +24,7 @@
       "permissions": [
         "CAMERA",
         "android.permission.CAMERA",
+        "android.permission.INTERNET",
         "android.permission.RECORD_AUDIO"
       ],
       "edgeToEdgeEnabled": false

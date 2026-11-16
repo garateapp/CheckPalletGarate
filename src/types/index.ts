@@ -57,14 +57,15 @@ export function getValidPalletItems(sheet: TechnicalSheet): PalletItem[] {
 export interface Paletizaje {
   base_pallet: string | null;
   filas_cajas: string | null;
-  tiempo_viaje: string | null;
+  cajas_por_pallet: string | null;
   altura_pallet: string | null;
-  instrucciones: string | null;
-  metros_zuncho: string | null;
+  variedad: string | null;
+  productor: string | null;
+  calibre: string | null;
+  categoria: string | null;
+  fecha_embalaje: string | null;
   protocolo_sag: string | null;
   sellos_zuncho: string | null;
-  tipo_transporte: string | null;
-  cajas_por_pallet: string | null;
   zunchos_verticales_lado_1m: string | null;
   numero_zunchos_horizontales: string | null;
   zunchos_verticales_lado_1_2m: string | null;
@@ -100,6 +101,11 @@ export interface PalletResponse {
   sheet?: TechnicalSheet;
   technical_sheet?: TechnicalSheet;
   metadata?: unknown;
+  variedad?: string | null;
+  productor?: string | null;
+  calibre?: string | null;
+  categoria?: string | null;
+  fecha_embalaje?: string | null;
 }
 
 // ─── Inspección ───────────────────────────────────────────────────

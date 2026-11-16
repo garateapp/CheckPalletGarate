@@ -25,7 +25,7 @@ import { sendInspection } from '../services/api';
 import { getSheetFromPallet } from '../utils/paletizaje';
 import { buildInspectionPayload, InspectionPayloadError } from '../utils/inspectionPayload';
 import { getValidPalletItems } from '../types';
-import type { ChecklistItemState } from '../types';
+import type { ChecklistItemState, PalletResponse } from '../types';
 import { extractPaletizajeChecks } from '../utils/paletizaje';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, TOUCH_TARGET_HEIGHT } from '../theme';
@@ -171,8 +171,6 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
   }, [navigation, handleCancel]);
 
   // ─── Render de cabecera de lista (ficha técnica + progreso) ─────
-  const palletMaterials = getValidPalletItems(sheet);
-
   const listHeader = (
     <View>
       <View style={styles.sheetCard}>
@@ -189,17 +187,29 @@ export default function ChecklistScreen({ route, navigation }: Props): React.JSX
           </View>
         </View>
 
-        {/* Materiales del pallet que se registrarán en la inspección */}
-        {palletMaterials.length > 0 ? (
-          <View style={styles.materialsBox}>
-            <Text style={styles.materialsTitle}>Materiales del pallet a registrar</Text>
-            {palletMaterials.map((item) => (
-              <Text key={item.id} style={styles.materialsLine}>
-                • {item.material?.nombre ?? 'Material'} — {String(item.cantidad_estandar)}
-              </Text>
-            ))}
-          </View>
-        ) : null}
+        {/* Datos de paletizaje a registrar */}
+        {(() => {
+          type DatoPaletizaje = 'variedad' | 'productor' | 'calibre' | 'categoria' | 'fecha_embalaje';
+          const filas = [
+            { key: 'variedad', label: 'Variedad' },
+            { key: 'productor', label: 'Productor' },
+            { key: 'calibre', label: 'Calibre' },
+            { key: 'categoria', label: 'Categoría' },
+            { key: 'fecha_embalaje', label: 'Fecha de embalaje' },
+          ] as { key: DatoPaletizaje; label: string }[];
+          const filasDisponibles = filas.filter((f) => pallet[f.key]);
+          if (filasDisponibles.length === 0) return null;
+          return (
+            <View style={styles.materialsBox}>
+              <Text style={styles.materialsTitle}>Datos de paletizaje</Text>
+              {filasDisponibles.map((f) => (
+                <Text key={f.key} style={styles.materialsLine}>
+                  • {f.label}: {String(pallet[f.key])}
+                </Text>
+              ))}
+            </View>
+          );
+        })()}
 
         {/* Barra de progreso */}
         <View style={styles.progressWrap}>

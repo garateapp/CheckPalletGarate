@@ -17,9 +17,11 @@ export const PALETIZAJE_FIELDS: FieldDefinition[] = [
   { key: 'filas_cajas', label: 'Filas de cajas', unit: 'filas' },
   { key: 'cajas_por_pallet', label: 'Cajas por pallet', unit: 'cajas' },
   { key: 'altura_pallet', label: 'Altura del pallet', unit: 'm' },
-  { key: 'tipo_transporte', label: 'Tipo de transporte', unit: null },
-  { key: 'tiempo_viaje', label: 'Tiempo de viaje', unit: null },
-  { key: 'metros_zuncho', label: 'Metros de zuncho', unit: 'm' },
+  { key: 'variedad', label: 'Variedad', unit: null },
+  { key: 'productor', label: 'Productor', unit: null },
+  { key: 'calibre', label: 'Calibre', unit: null },
+  { key: 'categoria', label: 'Categoría', unit: null },
+  { key: 'fecha_embalaje', label: 'Fecha de embalaje', unit: null },
   { key: 'numero_zunchos_horizontales', label: 'Zunchos horizontales', unit: 'zunchos' },
   {
     key: 'posiciones_zunchos_horizontales',
@@ -38,7 +40,6 @@ export const PALETIZAJE_FIELDS: FieldDefinition[] = [
   },
   { key: 'sellos_zuncho', label: 'Sellos de zuncho', unit: null },
   { key: 'protocolo_sag', label: 'Protocolo SAG', unit: null },
-  { key: 'instrucciones', label: 'Instrucciones', unit: null },
 ];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
