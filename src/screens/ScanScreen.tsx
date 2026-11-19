@@ -19,6 +19,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { BarcodeScanningResult, BarcodeType } from 'expo-camera';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useIsFocused } from '@react-navigation/native';
 import { fetchPallet } from '../services/api';
 import type { PalletResponse } from '../types';
 import { extractPaletizajeChecks } from '../utils/paletizaje';
@@ -42,6 +43,7 @@ const SCANNABLE_CODES: BarcodeType[] = [
 ];
 
 export default function ScanScreen({ navigation }: Props): React.JSX.Element {
+  const isFocused = useIsFocused();
   const [mode, setMode] = useState<ScanMode>('camera');
   const [manualFolio, setManualFolio] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -164,7 +166,7 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
             style={StyleSheet.absoluteFill}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: SCANNABLE_CODES }}
-            onBarcodeScanned={handleBarcode}
+            onBarcodeScanned={isLoading ? undefined : handleBarcode}
           />
           {/* Marco guía de lectura */}
           <View pointerEvents="none" style={styles.scanOverlay}>
