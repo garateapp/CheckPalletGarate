@@ -153,7 +153,7 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
           onPress={() => setMode('manual')}
         >
           <Text style={[styles.tabText, mode === 'manual' && styles.tabTextActive]}>
-            ⌨️ Entrada manual
+            ⌨️ Ingreso manual
           </Text>
         </Pressable>
       </View>
