@@ -47,8 +47,6 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
 
-  /** Bloqueo anti doble escaneo accidental (refs síncronas). */
-  const lockRef = useRef(false);
   const lastBarcodeRef = useRef<{ value: string; at: number }>({ value: '', at: 0 });
 
   // ─── Consulta del folio a la API ────────────────────────────────
@@ -61,8 +59,6 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
         return;
       }
 
-      if (lockRef.current) return; // Evita peticiones dobles.
-      lockRef.current = true;
       setIsLoading(true);
 
       try {
@@ -84,11 +80,6 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
         );
       } finally {
         setIsLoading(false);
-        // Pequeña pausa para que el operario vea el resultado antes de re-habilitar.
-        setTimeout(() => {
-          lockRef.current = false;
-          lastBarcodeRef.current = { value: '', at: 0 };
-        }, 800);
       }
     },
     [navigation]
@@ -97,8 +88,8 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
   // ─── Callback del lector de códigos ─────────────────────────────
   const handleBarcode = useCallback(
     (event: BarcodeScanningResult) => {
+      if (isLoading) return;
       // Descarta lecturas repetidas del mismo código en < 2 s.
-      if (lockRef.current) return;
       const now = Date.now();
       if (
         event.data === lastBarcodeRef.current.value &&
@@ -109,7 +100,7 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
       lastBarcodeRef.current = { value: event.data, at: now };
       void lookupFolio(event.data);
     },
-    [lookupFolio]
+    [lookupFolio, isLoading]
   );
 
   const handleManualSubmit = useCallback(() => {
@@ -173,7 +164,7 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
             style={StyleSheet.absoluteFill}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: SCANNABLE_CODES }}
-            onBarcodeScanned={isLoading ? undefined : handleBarcode}
+            onBarcodeScanned={handleBarcode}
           />
           {/* Marco guía de lectura */}
           <View pointerEvents="none" style={styles.scanOverlay}>
