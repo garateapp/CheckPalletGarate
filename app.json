@@ -5,10 +5,9 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "backgroundColor": "#0F2A43"
-    },
+    // "splash": {
+    //   "backgroundColor": "#0F2A43"
+    // },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.garate.checkpalletgarate",
@@ -22,12 +21,10 @@
         "backgroundColor": "#0F2A43"
       },
       "permissions": [
-        "CAMERA",
         "android.permission.CAMERA",
         "android.permission.INTERNET",
         "android.permission.RECORD_AUDIO"
-      ],
-      "edgeToEdgeEnabled": false
+      ]
     },
     "plugins": [
       "expo-secure-store",
@@ -38,7 +35,8 @@
           "microphonePermission": false,
           "barcodeScannerEnabled": true
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "extra": {
       "apiUrl": "https://produccion.garatehermanos.cl/api/v1",

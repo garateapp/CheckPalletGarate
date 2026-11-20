@@ -137,7 +137,7 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
       </View>
     );
   }
-
+  
   return (
     <View style={styles.container}>
       {/* Selector de modo Cámara / Manual */}
