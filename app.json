@@ -34,7 +34,9 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Permite a CheckPalletGarate usar la cámara para escanear códigos de barra de pallets."
+          "cameraPermission": "Permite a CheckPalletGarate usar la cámara para escanear códigos de barra de pallets.",
+          "microphonePermission": false,
+          "barcodeScannerEnabled": true
         }
       ]
     ],

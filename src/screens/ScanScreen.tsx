@@ -166,7 +166,17 @@ export default function ScanScreen({ navigation }: Props): React.JSX.Element {
             style={StyleSheet.absoluteFill}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: SCANNABLE_CODES }}
-            onBarcodeScanned={isLoading ? undefined : handleBarcode}
+            onCameraReady={() => {
+            console.log('CAMERA_READY: Cámara iniciada correctamente');
+          }}
+          onMountError={(error) => {
+            console.error('CAMERA_ERROR:', error.message);
+            Alert.alert('Error de cámara', error.message);
+          }}
+          onBarcodeScanned={isLoading ? undefined : (event) => {
+            console.log('BARCODE_DETECTED:', event.type, event.data);
+            handleBarcode(event);
+          }}
           />
           {/* Marco guía de lectura */}
           <View pointerEvents="none" style={styles.scanOverlay}>
